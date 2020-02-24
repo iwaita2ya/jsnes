@@ -1,8 +1,11 @@
 # JSNES
 
 A JavaScript NES emulator.
-
 It's a library that works in both the browser and Node.js. The browser UI is available at [https://github.com/bfirsh/jsnes-web](https://github.com/bfirsh/jsnes-web).
+
+## Embedding JSNES in a web page
+
+see [index.html](https://taisukef.github.io/jsnes/)  
 
 ## Usage
 
@@ -37,10 +40,6 @@ nes.buttonUp(1, jsnes.Controller.BUTTON_A);
 nes.frame();
 // ...
 ```
-
-## Embedding JSNES in a web page
-
-see [index.html](https://taisukef.github.io/jsnes/)  
 
 ## Maintainers
 
