@@ -1,7 +1,7 @@
 # JSNES
 
-A JavaScript NES emulator.
-It's a library that works in both the browser and Node.js. The browser UI is available at [https://github.com/bfirsh/jsnes-web](https://github.com/bfirsh/jsnes-web).
+A JavaScript NES emulator.  
+forked https://github.com/bfirsh/jsnes  
 
 ## Embedding JSNES in a web page
 
