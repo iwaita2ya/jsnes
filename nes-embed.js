@@ -1,3 +1,5 @@
+import { jsnes } from "./src/nes.js"
+
 var SCREEN_WIDTH = 256;
 var SCREEN_HEIGHT = 240;
 var FRAMEBUFFER_SIZE = SCREEN_WIDTH*SCREEN_HEIGHT;
@@ -8,6 +10,7 @@ var framebuffer_u8, framebuffer_u32;
 var AUDIO_BUFFERING = 512;
 var SAMPLE_COUNT = 4*1024;
 var SAMPLE_MASK = SAMPLE_COUNT - 1;
+var audio_ctx;
 var audio_samples_L = new Float32Array(SAMPLE_COUNT);
 var audio_samples_R = new Float32Array(SAMPLE_COUNT);
 var audio_write_cursor = 0, audio_read_cursor = 0;
@@ -76,6 +79,7 @@ function keyboard(callback, event){
 			callback(player, jsnes.Controller.BUTTON_START); break;
 		default: break;
 	}
+	event.preventDefault()
 }
 
 function nes_init(canvas_id){
@@ -92,15 +96,19 @@ function nes_init(canvas_id){
 	framebuffer_u32 = new Uint32Array(buffer);
 	
 	// Setup audio.
-	var audio_ctx = new window.AudioContext();
+	audio_ctx = new window.AudioContext();
 	var script_processor = audio_ctx.createScriptProcessor(AUDIO_BUFFERING, 0, 2);
 	script_processor.onaudioprocess = audio_callback;
 	script_processor.connect(audio_ctx.destination);
 }
 
+let initflg = false
 function nes_boot(rom_data){
 	nes.loadROM(rom_data);
-	window.requestAnimationFrame(onAnimationFrame);
+	if (!initflg) {
+		window.requestAnimationFrame(onAnimationFrame);
+		initflg = true
+	}
 }
 
 function nes_load_data(canvas_id, rom_data){
@@ -109,7 +117,9 @@ function nes_load_data(canvas_id, rom_data){
 }
 
 function nes_load_url(canvas_id, path){
-	nes_init(canvas_id);
+	if (!initflg) {
+		nes_init(canvas_id);
+	}
 	
 	var req = new XMLHttpRequest();
 	req.open("GET", path);
@@ -118,7 +128,7 @@ function nes_load_url(canvas_id, path){
 	
 	req.onload = function() {
 		if (this.status === 200) {
-		nes_boot(this.responseText);
+			nes_boot(this.responseText)
 		} else if (this.status === 0) {
 			// Aborted, so ignore error
 		} else {
@@ -131,3 +141,9 @@ function nes_load_url(canvas_id, path){
 
 document.addEventListener('keydown', (event) => {keyboard(nes.buttonDown, event)});
 document.addEventListener('keyup', (event) => {keyboard(nes.buttonUp, event)});
+
+function nes_get_audio_context() {
+	return audio_ctx
+}
+
+export default { nes_load_url, nes_get_audio_context, nes }

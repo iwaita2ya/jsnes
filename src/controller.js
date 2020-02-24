@@ -24,4 +24,4 @@ Controller.prototype = {
   }
 };
 
-module.exports = Controller;
+export { Controller }

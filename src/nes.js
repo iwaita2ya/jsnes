@@ -1,8 +1,8 @@
-var CPU = require("./cpu");
-var Controller = require("./controller");
-var PPU = require("./ppu");
-var PAPU = require("./papu");
-var ROM = require("./rom");
+import { CPU } from "./cpu.js"
+import { Controller } from "./controller.js"
+import { PPU } from "./ppu.js"
+import { PAPU } from "./papu.js"
+import { ROM } from "./rom.js"
 
 var NES = function(opts) {
   this.opts = {
@@ -207,4 +207,5 @@ NES.prototype = {
   }
 };
 
-module.exports = NES;
+const jsnes = { NES, Controller }
+export { jsnes }

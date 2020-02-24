@@ -1,0 +1,206 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"/>
+<title>kawakudari - JSNES Embedding</title>
+<style>
+body {
+	margin: 5px;
+}
+.output {
+	border: 1px solid black;
+	margin: 5px;
+	padding: 5px;
+	font-family: "Courier New", Consolas, monospace;
+	font-size: 12px;
+}
+canvas {
+	vertical-align: top;
+}
+#nes_canvas {
+	/*
+	width: 512px;
+	height: 480px;
+	 */
+}
+#bg_canvas, #sp_canvas {
+	width: 256px;
+	height: 256px;
+}
+#sp_data {
+	display: inline-block;
+	overflow: scroll;
+	height: 463px;
+}
+</style>
+</head>
+<body>
+<div style="margin: auto; width: 100%;">
+	<canvas id="nes_canvas" width="256" height="240"></canvas>
+	<canvas id="bg_canvas" width="128" height="128"></canvas>
+	<canvas id="sp_canvas" width="128" height="128"></canvas>
+	<canvas id="vram_canvas" width="512" height="480"></canvas>
+	<div id="sp_data" class=output width="256" height="512"></div>
+</div>
+<button id=audio>audio on</button>
+<button id=chgrom>change rom</button>
+<script type="module">
+import nesemb from "./nes-embed.js"
+
+window.onload = function() {
+	const rom1 = "example/InterglacticTransmissing.nes"
+	const rom2 = "example/kawakudari.nes"
+	let flgrom = true
+	nesemb.nes_load_url("nes_canvas", rom1)
+
+	audio.onclick = function() {
+		if (nesemb.nes_get_audio_context()) {
+			nesemb.nes_get_audio_context().resume()
+		} else {
+			alert("no audio")
+		}
+	}
+	chgrom.onclick = function() {
+		flgrom = !flgrom
+		nesemb.nes_load_url("nes_canvas", flgrom ? rom1 : rom2)
+	}
+
+	console.log(nesemb.nes) // for debug
+
+	setInterval(function() {
+//		const cpu = jsnes.NES.CPU
+		//console.log(nesemb.nes)
+		const mem = nesemb.nes.cpu.mem
+		const vram = nesemb.nes.ppu.vramMem
+		const vramoff = 0x2000
+		let s = ""
+		const hex = function(n) {
+			if (n < 0x10)
+				return "0" + n.toString(16)
+			return n.toString(16)
+		}
+		const dec = function(n) {
+			return (1000 + n).toString(10).substring(1)
+		}
+		const bin = function(n) {
+			return (0b100000000 + n).toString(2).substring(1)
+		}
+		// let sv = "" for VRAM
+		for (let i = 0; i < 256 * 8; i++) {
+			if (i % 16 == 0)
+				s += (i + 0x1000).toString(16).substring(1) + " "
+			s += hex(mem[i]) + " "
+			//sv += hex(vram[vramoff + i]) + " "
+			if (i % 16 == 15) {
+				//s += " : " + sv + "<br>"
+				//sv = ""
+				s += "<br>"
+			}
+		}
+		output.innerHTML = s
+
+		s = "      CH X   Y   VHB---PL<br>".replace(/ /g, "&nbsp;")
+		const spmem = nesemb.nes.ppu.spriteMem
+		for (let i = 0; i < 64; i++) {
+			s += "SPR" + (i + 100).toString().substring(1) + " "
+			// Y C T X
+			s += hex(spmem[i * 4 + 1]) + " " + dec(spmem[i * 4 + 3]) + " " + dec(spmem[i * 4 + 0]) + " " + bin(spmem[i * 4 + 2]) + "<br>"
+		}
+		sp_data.innerHTML = s
+	}, 500)
+
+	const bgscr = new Screen(bg_canvas)
+	const spscr = new Screen(sp_canvas)
+	const vramscr = new Screen(vram_canvas)
+
+	const setPalette = function(scr) {
+		scr.plt = 0
+		scr.canvas.onmousedown = function() {
+			scr.plt = (scr.plt + 1) & 3
+		}
+	}
+	setPalette(bgscr)
+	setPalette(spscr)
+
+	const showCHR = function(scr, offset, plt) {
+		//console.log(plt)
+		//const plt = nesemb.nes.ppu.palTable.curTable
+
+		const vram = nesemb.nes.ppu.vramMem
+		const fbuf = scr.getBuffer()
+		for (let i = 0; i < 256; i++) {
+			const cx = i & 15
+			const cy = i >> 4
+			for (let j = 0; j < 8; j++) {
+				for (let k = 0; k < 8; k++) {
+					const n = ((vram[offset + i * 16 + j] >> (7 - k)) & 1) + ((vram[offset + i * 16 + j + 8] >> (7 - k)) & 1) * 2
+					const x = cx * 8 + k
+					const y = cy * 8 + j
+					fbuf[x + y * 128] = 0xff000000 | plt[n + scr.plt * 4]
+				}
+			}
+		}
+		scr.update()
+	}
+	const showVRAM = function(scr, offset) {
+		const vram = nesemb.nes.ppu.vramMem
+		const plt = nesemb.nes.ppu.imgPalette
+		const fbuf = scr.getBuffer()
+		for (let i = 0; i < 4; i++) {
+			const sx = i & 1
+			const sy = i >> 1
+			for (let j = 0; j < 30; j++) {
+				for (let k = 0; k < 32; k++) {
+					const cx = sx * 32 + k
+					const cy = sy * 30 + j
+					const bno = (k >> 2) + (j >> 2) * 8
+					const c = vram[0x2000 + i * 1024 + j * 32 + k]
+					const p = (vram[0x2000 + i * 1024 + 960 + bno] >> (((k >> 1) & 1) * 2 + ((j >> 1) & 1) * 4)) & 3
+					for (let j2 = 0; j2 < 8; j2++) {
+						for (let k2 = 0; k2 < 8; k2++) {
+							const n = ((vram[offset + c * 16 + j2] >> (7 - k2)) & 1) + ((vram[offset + c * 16 + j2 + 8] >> (7 - k2)) & 1) * 2
+							const x = cx * 8 + k2
+							const y = cy * 8 + j2
+							fbuf[x + y * 512] = 0xff000000 | plt[n + p * 4]
+						}
+					}
+				}
+			}
+		}
+		scr.update()
+	}
+	const t = setInterval(function() {
+		const ppu = nesemb.nes.ppu
+		showCHR(bgscr, 4096 * ppu.f_bgPatternTable, ppu.imgPalette)
+		showCHR(spscr, 4096 * ppu.f_spPatternTable, nesemb.nes.ppu.sprPalette)
+		showVRAM(vramscr, 4096 * ppu.f_bgPatternTable)
+		//clearInterval(t)
+	}, 500)
+}
+
+class Screen {
+	constructor(canvas) {
+		this.canvas = canvas
+		this.ctx = canvas.getContext("2d")
+		this.cw = canvas.width
+		this.ch = canvas.height
+		this.image = this.ctx.getImageData(0, 0, this.cw, this.ch)
+		
+		this.ctx.fillStyle = "black"
+		this.ctx.fillRect(0, 0, this.cw, this.ch)
+		
+		const buffer = new ArrayBuffer(this.image.data.length)
+		this.fbuf_u8 = new Uint8ClampedArray(buffer)
+		this.fbuf_u32 = new Uint32Array(buffer)
+	}
+	getBuffer() {
+		return this.fbuf_u32
+	}
+	update() {
+		this.image.data.set(this.fbuf_u8)
+		this.ctx.putImageData(this.image, 0, 0, 0, 0, this.cw, this.ch)
+	}
+}
+
+</script>
+<div id=output class=output></div>
+<p>DPad: Arrow keys<br/>Start: Return, Select: Tab<br/>A Button: A, B Button: S</p>
+</body>
+</html>

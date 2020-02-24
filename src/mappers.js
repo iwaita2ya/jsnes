@@ -1,4 +1,4 @@
-var utils = require("./utils");
+import { utils } from "./utils.js"
 
 var Mappers = {};
 
@@ -1515,4 +1515,4 @@ Mappers[180].prototype.loadROM = function() {
   this.nes.cpu.requestIrq(this.nes.cpu.IRQ_RESET);
 };
 
-module.exports = Mappers;
+export { Mappers }
