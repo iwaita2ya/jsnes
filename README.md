@@ -1,7 +1,7 @@
 # JSNES
 
 A JavaScript NES emulator.  
-forked https://github.com/bfirsh/jsnes  
+forked from https://github.com/bfirsh/jsnes  
 
 ## Embedding JSNES in a web page
 
