@@ -2,6 +2,7 @@
 
 A JavaScript NES emulator.  
 forked from https://github.com/bfirsh/jsnes  
+'require' -> 'import/export'  
 
 ## Embedding JSNES in a web page
 
