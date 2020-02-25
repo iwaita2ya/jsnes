@@ -7,6 +7,7 @@ forked from https://github.com/bfirsh/jsnes
 ## Embedding JSNES in a web page
 
 see [index.html](https://taisukef.github.io/jsnes/)  
+<img src=https://taisukef.github.io/jsnes/example/jsnes2.png style="width:100%">  
 
 ## Usage
 
